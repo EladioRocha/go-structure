@@ -1,108 +1,56 @@
+# Go API Structure — Gin and PostgreSQL
 
-# Instrucciones para la Configuración del Proyecto en Go
+A small **Go, Gin, and GORM example** demonstrating separation between routes, handlers, models, and database access. The implemented endpoint lists users from PostgreSQL.
 
-> **Repositorio del Proyecto**: [GitHub - Estructura del proyecto](https://github.com/EladioRocha/go-structure)  
+## Requirements and setup
 
-### 1. Crear el Proyecto y Configurar Módulos
+The existing [go.mod](go.mod) declares Go `1.23.2` and module name `backend-3`. Use a compatible Go toolchain and a local PostgreSQL database. Keep the module name consistent with the imports; do not run `go mod init` again for this checkout.
 
-1.  **Crea una carpeta** para el proyecto y abre la terminal en esa carpeta.
-    
-2.  Ejecuta el siguiente comando para inicializar el módulo Go:
-        
-    `go mod init <nombre-del-proyecto>` 
-    
-3.  Luego, ejecuta:
-    
-    `go mod tidy` 
-    
-4.  Es importante instalar los siguientes módulos necesarios para este proyecto:
-    
-    ```bash
-    go get github.com/gin-gonic/gin
-    go get gorm.io/gorm
-    go get gorm.io/driver/postgres
-    go get github.com/joho/godotenv
-    ```
-    
-
-### 2. Estructura del Proyecto
-
-La estructura del proyecto puede organizarse de la siguiente manera:
-
-```go
-<nombre-del-proyecto>/
-├── db/
-│   └── db.go
-├── handlers/
-│   └── users.go
-├── models/
-│   └── user.go
-├── routes/
-│   └── routes.go
-└── main.go
+```sh
+go mod download
 ```
 
--   **db/db.go**: Configuración de la base de datos.
--   **handlers/users.go**: Controladores para manejar solicitudes relacionadas con usuarios.
--   **models/user.go**: Definición del modelo `User`.
--   **routes/routes.go**: Definición de las rutas de la API.
--   **main.go**: Punto de entrada para inicializar el servidor.
+Create a `.env` in the repository root with your development settings:
 
-### 3. Definición de Campos en Estructuras con Tipos Específicos
-
-A continuación, se explica cómo definir tipos de campos en una estructura utilizando las etiquetas `gorm:"type"` para almacenar correctamente diferentes tipos de datos en la base de datos.
-
-#### Tipos de Datos en GORM (`type`)
-
-| Tipo de Dato (`type`)        | Descripción                                                                                              | Ejemplo de Uso                        |
-|------------------------------|----------------------------------------------------------------------------------------------------------|---------------------------------------|
-| `int`                        | Entero de tamaño estándar en SQL.                                                                        | `gorm:"type:int"`                     |
-| `smallint`                   | Entero pequeño (2 bytes).                                                                               | `gorm:"type:smallint"`                |
-| `bigint`                     | Entero grande (8 bytes).                                                                                | `gorm:"type:bigint"`                  |
-| `serial`                     | Entero auto-incremental.                                                                                 | `gorm:"type:serial"`                  |
-| `varchar(n)`                 | Cadena de texto de longitud variable con un límite máximo de `n` caracteres.                            | `gorm:"type:varchar(255)"`            |
-| `char(n)`                    | Cadena de texto de longitud fija con `n` caracteres.                                                     | `gorm:"type:char(10)"`                |
-| `text`                       | Texto de longitud ilimitada.                                                                            | `gorm:"type:text"`                    |
-| `boolean`                    | Valor booleano (`true` o `false`).                                                                       | `gorm:"type:boolean"`                 |
-| `decimal(p, s)`              | Número decimal con `p` dígitos totales y `s` decimales.                                                  | `gorm:"type:decimal(10,2)"`           |
-| `date`                       | Fecha sin tiempo.                                                                                       | `gorm:"type:date"`                    |
-| `timestamp`                  | Marca de tiempo (fecha y hora).                                                                         | `gorm:"type:timestamp"`               |
-| `json`                       | Almacena datos JSON en formato de texto (PostgreSQL y MySQL).                                           | `gorm:"type:json"`                    |
-| `uuid`                       | Identificador único universal.                                                                          | `gorm:"type:uuid"`                    |
-
-
-#### Ejemplo de Estructura de Datos Usando GORM
-
-Aquí tienes un ejemplo de cómo definir una estructura `User` en `models/user.go`, utilizando diferentes tipos de datos con precisión para caracteres fijos, dinámicos y decimales:
-
-```go
-package models
-
-import (
-    "time"
-    "github.com/shopspring/decimal"
-)
-
-// User estructura que representa a un usuario en la base de datos
-type User struct {
-    ID          uint            `gorm:"primaryKey;type:serial"`
-    Username    string          `gorm:"type:varchar(50);not null"`       // Carácter dinámico de hasta 50 caracteres
-    Email       string          `gorm:"type:varchar(100);unique;not null"` // Carácter dinámico, único y no nulo
-    Password    string          `gorm:"type:char(60);not null"`          // Carácter fijo, 60 caracteres (para hash)
-    Balance     decimal.Decimal `gorm:"type:decimal(10,2);not null"`     // Decimal con precisión de 10 dígitos y 2 decimales
-    Active      bool            `gorm:"type:boolean;default:true"`       // Booleano con valor predeterminado
-    CreatedAt   time.Time       `gorm:"autoCreateTime"`                  // Fecha de creación automática
-    UpdatedAt   time.Time       `gorm:"autoUpdateTime"`                  // Fecha de actualización automática
-}
+```dotenv
+DB_HOST=127.0.0.1
+DB_USER=your_database_user
+DB_NAME=go_structure
+DB_PASSWORD=your_database_password
+DB_PORT=5432
 ```
 
-### Explicación de los Campos
+Create the database before making a request. The database helper requires the `.env` file to load successfully and constructs a connection with `sslmode=disable`, suitable only for the intended local example configuration.
 
--   **ID**: Identificador auto-incremental (`serial`).
--   **Username**: Carácter dinámico con un límite de 50 caracteres.
--   **Email**: Carácter dinámico, único y no nulo, con un límite de 100 caracteres.
--   **Password**: Carácter fijo de 60 caracteres (útil para almacenar hashes de contraseñas).
--   **Balance**: Campo decimal con precisión, permite manejar dinero con exactitud (`decimal(10,2)`).
--   **Active**: Campo booleano con valor predeterminado en `true`.
--   **CreatedAt**: Fecha y hora de creación, generada automáticamente por GORM.
--   **UpdatedAt**: Fecha y hora de última actualización, actualizada automáticamente.
+```sh
+go run .
+```
+
+Gin runs on port 8080 by default, or the `PORT` process environment setting. Query the endpoint:
+
+```sh
+curl http://localhost:8080/users
+```
+
+## Request lifecycle
+
+`main.go` registers `GET /users`. Its handler initializes the database, runs `AutoMigrate` for `models.User`, queries the users, and returns JSON. Database initialization and migration happen on every request, not once at startup. Configuration or connection failures can terminate the process.
+
+## Files and data model
+
+| Path | Purpose |
+| --- | --- |
+| [main.go](main.go) | Router and HTTP server. |
+| [routes/routes.go](routes/routes.go) | Route registration. |
+| [handlers/users.go](handlers/users.go) | User-list handler. |
+| [db/db.go](db/db.go) | Environment, PostgreSQL, and migration setup. |
+| [models/user.go](models/user.go) | User fields: `ID`, `Email`, and `CreatedAt`. |
+| [utils/utils.go](utils/utils.go) | Separate numeric helper experiment. |
+
+The earlier README included a larger hypothetical model; it was not the model implemented here. The current API does not expose creation, updates, deletion, or authentication.
+
+## Checks and improvements
+
+`go build ./...` checks compilation and `go test ./...` runs any package tests. No `_test.go` files are currently tracked, so that command alone would not establish behavior coverage. Database requests were not exercised for this documentation update.
+
+Possible next improvements include sharing a single database connection, separating migrations from requests, and adding handler tests and explicit error responses.
